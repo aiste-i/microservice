@@ -18,7 +18,7 @@ func orderIDKey(id uint64) string {
 	return fmt.Sprintf("order:%d", id)
 }
 
-func (r *RedisRepo) Insert(ctx context.Conetxt, order model.Order) error {
+func (r *RedisRepo) Insert(ctx context.Context, order model.Order) error {
 	data, err := json.Marshal(order)
 	if err != nil {
 		return fmt.Errorf("failed to encode order:", err)
@@ -84,6 +84,10 @@ func (r *RedisRepo) DeleteByID(ctx context.Context, id uint64) error {
 	if err := txn.SRem(ctx, "orders", key).Err(); err != nil {
 		txn.Discard()
 		return fmt.Errorf("failed to remove order from set", err)
+	}
+
+	if _, err := txn.Exec(ctx); err != nil {
+		return fmt.Errorf("failed to exec: %w", err)
 	}
 
 	return nil

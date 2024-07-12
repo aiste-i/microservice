@@ -12,19 +12,25 @@ import (
 type App struct {
 	router http.Handler
 	rdb    *redis.Client
+  config Config
 }
 
-func New() *App {
+func New(config Config) *App {
 	app := &App{
-		router: loadRoutes(),
-		rdb:    redis.NewClient(&redis.Options{}),
+		rdb:    redis.NewClient(&redis.Options{
+      Addr: config.RedisAddress,
+    }),
+    config: config,
 	}
+
+	app.loadRoutes()
+
 	return app
 }
 
 func (a *App) Start(ctx context.Context) error {
 	server := &http.Server{
-		Addr:    ":3030",
+		Addr:    fmt.Sprintf(":%d", a.config.ServerPort),
 		Handler: a.router,
 	}
 
@@ -35,7 +41,7 @@ func (a *App) Start(ctx context.Context) error {
 
 	defer func() {
 		if err := a.rdb.Close(); err != nil {
-			fmt.Println("failed to close redis:", err)
+			fmt.Println("failed to close redis", err)
 		}
 	}()
 
@@ -61,4 +67,5 @@ func (a *App) Start(ctx context.Context) error {
 		return server.Shutdown(timeout)
 	}
 
+	return nil
 }
